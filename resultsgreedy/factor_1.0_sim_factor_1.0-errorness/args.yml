@@ -1,0 +1,7 @@
+agent: /home/xiaofu/FutureCoord/resultsgreedy/factor_1.0_sim_factor_1.0/agent.yml
+episodes: 10
+experiment: /home/xiaofu/FutureCoord/resultsgreedy/factor_1.0_sim_factor_1.0/experiment.yml
+logdir: /home/xiaofu/FutureCoord/resultsgreedy/factor_1.0_sim_factor_1.0
+oracle: false
+seed: 0
+traffic: erroneous

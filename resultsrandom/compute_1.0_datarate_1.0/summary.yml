@@ -1,0 +1,29 @@
+agent:
+  name: Random
+  policy: {}
+  train: {}
+args:
+  agent: results/compute_1.0_datarate_1.0/agent.yml
+  episodes: 10
+  experiment: results/compute_1.0_datarate_1.0/experiment.yml
+  logdir: results/compute_1.0_datarate_1.0
+  oracle: false
+  seed: 0
+experiment:
+  datarate: 1.0
+  endpoints: ./data/experiments/abilene/abilene.npy
+  latency: 1.0
+  load: 1.0
+  name: abilene
+  overlay: results/compute_1.0_datarate_1.0/overlay.gpickle
+  services:
+  - ./data/services/trace/memory.yml
+  - ./data/services/trace/cpu.yml
+  - ./data/services/trace/datarate.yml
+  - ./data/services/trace/latency.yml
+  sim_datarate: 1.0
+  sim_latency: 1.0
+  sim_load: 1.0
+  time_horizon: 43
+  traffic: accurate
+  vnfs: ./data/experiments/vnfs.csv

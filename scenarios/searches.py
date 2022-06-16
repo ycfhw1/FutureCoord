@@ -14,7 +14,7 @@ from munch import munchify, unmunchify
 parser = argparse.ArgumentParser()
 # define parameters of to-be-evaluated experiment
 parser.add_argument('--experiment', type=str, default='./data/experiments/abilene/traffic_trace/trace.yml')
-parser.add_argument('--agent', type=str, default='./data/configurations/coord_random.yml')
+parser.add_argument('--agent', type=str, default='./data/configurations/random.yml')
 
 # arguments to specify properties of simulation process
 parser.add_argument('--oracle', dest='oracle', action='store_true')
@@ -26,9 +26,9 @@ parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--pool', type=int, default=1)
 
 # arguments to specify the to-be-evaluated parameter space
-parser.add_argument('--max_searches', nargs='+', type=int)
-parser.add_argument('--max_requests', nargs='+', type=int)
-parser.add_argument('--sim_discounts', nargs='+', type=float)
+parser.add_argument('--max_searches', nargs='+', type=list)
+parser.add_argument('--max_requests', nargs='+', type=list)
+parser.add_argument('--sim_discounts', nargs='+', type=list)
 
 
 def spawn(config, args, logdir):
@@ -61,6 +61,7 @@ if __name__ == '__main__':
         agent = munchify(yaml.safe_load(file))
 
     configs = []
+    #product(A,B)函数,返回A和B中的元素组成的笛卡尔积的元组
     for max_searches, max_requests, discount in product(args.max_searches, args.max_requests, args.sim_discounts):
         config = deepcopy(agent)
         config.policy.max_searches = max_searches
@@ -69,5 +70,6 @@ if __name__ == '__main__':
         configs.append(config)
 
     with Pool(processes=args.pool) as pool:
+        #并行处理
         pool.starmap(spawn, [(config, args, logdir) for config in configs])
 

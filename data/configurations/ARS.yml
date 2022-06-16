@@ -1,0 +1,6 @@
+name: MaskedARS
+policy:
+  policy: MlpPolicy
+
+train:
+  total_timesteps: 20000

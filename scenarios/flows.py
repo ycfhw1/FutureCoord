@@ -20,16 +20,16 @@ def spawn(ns):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--factors', nargs='+', type=float)
-parser.add_argument('--sim_factors', nargs='+', type=float)
+parser.add_argument('--factors', nargs='+', type=float,default=[1.0])
+parser.add_argument('--sim_factors', nargs='+', type=float,default=[1.0])
 parser.add_argument('--property', type=str, default='load')
 parser.add_argument('--traffic', type=str, default='accurate')
 
 # define parameters of to-be-evaluated experiment
-parser.add_argument('--experiment', type=str, default='./data/experiments/abilene/trace.yml')
-parser.add_argument('--agent', type=str, default='./data/configurations/random.yml')
+parser.add_argument('--experiment', type=str, default='/home/xiaofu/FutureCoord/data/experiments/abilene/trace.yml')
+parser.add_argument('--agent', type=str, default='/home/xiaofu/FutureCoord/data/configurations/random.yml')
 parser.add_argument('--episodes', type=int, default=10)
-parser.add_argument('--logdir', type=str, default='./results/')
+parser.add_argument('--logdir', type=str, default='/home/xiaofu/FutureCoord/results/')
 parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--pool', type=int, default=1)
 
@@ -58,7 +58,7 @@ if __name__ == '__main__':
     for factor, sim_factor in zip(args.factors, args.sim_factors):
         exp = deepcopy(experiment)
         path = logdir / f'factor_{factor}_sim_factor_{sim_factor}'
-        path.mkdir()
+        os.makedirs(path)
 
         exp.traffic = args.traffic
 
@@ -93,8 +93,9 @@ if __name__ == '__main__':
 
     runs = []
     for run in os.listdir(str(logdir)):
-        with open(logdir / run / 'args.yml', 'r') as file:
-            runs.append(munchify(yaml.safe_load(file)))
+        if 'factor' in run:
+            with open(logdir / run / 'args.yml', 'r') as file:
+                runs.append(munchify(yaml.safe_load(file)))
 
     with Pool(processes=args.pool) as pool:
         pool.map(spawn, runs)

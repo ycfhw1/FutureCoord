@@ -12,6 +12,7 @@ class BiDict(MutableMapping):
         self.val_btype = val_btype
 
         # key map is the identity function by default
+        #默认情况下，键映射是标识函数
         self.key_map = lambda key: key if key_map is None else key_map(key)
 
         if mirror is not None:
@@ -27,7 +28,7 @@ class BiDict(MutableMapping):
             self._dict.setdefault(self.key_map(key), list()).append(value)
         else:
             raise
-
+        #这里实现了反向映射的逻辑
         if not inv:
             self.mirror.__setitem__(value, key, inv=True)
 
@@ -37,6 +38,7 @@ class BiDict(MutableMapping):
             return self._dict[key]
 
         # handle default behavior for unknown keys
+        #对于不知道的KEY，直接返回默认值也就是一个空set
         return self.val_btype()
 
     def __delitem__(self, key):
@@ -46,6 +48,7 @@ class BiDict(MutableMapping):
             self.mirror[val].remove(key)
 
             # remove keys from inverse dictionary if their list is empty
+            #从反向字典中删除键，如果其列表为空
             if not self.mirror[val]:
                 del self.mirror[val]
 

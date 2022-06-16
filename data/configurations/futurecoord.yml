@@ -7,8 +7,7 @@ policy:
 
 rollout:
   name: Random
-  policy: 
-    policy: {}
+  policy:  {}
     
-train: {}
+train:  {}
 

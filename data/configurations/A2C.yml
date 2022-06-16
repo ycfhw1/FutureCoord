@@ -1,0 +1,6 @@
+name: MaskedA2C
+policy:
+  policy: MlpPolicy
+
+train:
+  total_timesteps: 20000

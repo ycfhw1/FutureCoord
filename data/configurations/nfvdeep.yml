@@ -4,4 +4,4 @@ policy:
   policy: MlpPolicy
 
 train:
-  total_timesteps: 2000000
+  total_timesteps: 20000

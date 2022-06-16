@@ -9,10 +9,9 @@ from matplotlib import pyplot as plt
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--logdir', type=str, default='./logs')
+    parser.add_argument('--logdir', type=str, default='/home/xiaofu/FutureCoord')
     parser.add_argument('--output', type=str, default='./results')
     args = parser.parse_args()
-
     index_mapping = {'agent': 'Agent', 'episode': 'Episode'}
 
     measure_mapping = {'reward': 'Reward',
@@ -21,7 +20,7 @@ if __name__ == '__main__':
     results = pd.DataFrame()
 
     dirs = [directory for directory in os.listdir(args.logdir)]
-    tables = [Path(args.logdir) / directory / 'results' /
+    tables = [Path(args.logdir) / directory / 'results'/
               'results.csv' for directory in dirs]
     tables = [table for table in tables if table.exists()]
     for table in tables:
@@ -30,7 +29,6 @@ if __name__ == '__main__':
 
     results = results.rename(columns={**index_mapping, **measure_mapping})
     results = results.reset_index()
-
     sns.set_style("whitegrid")
     for measure in measure_mapping.values():
         fig, ax = plt.subplots(figsize=(7, 6))

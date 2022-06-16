@@ -6,7 +6,6 @@ import numpy as np
 from gym import spaces
 
 from coordination.environment.deployment import ServiceCoordination
-
 class NFVdeepCoordination(ServiceCoordination):
     COMPUTE_UNIT_COST = 0.2
     MEMORY_UNIT_COST = 0.2
@@ -47,12 +46,12 @@ class NFVdeepCoordination(ServiceCoordination):
         resd_lat = self.request.resd_lat / 100.0
         num_components = (len(self.request.vtypes) - len(self.vtype_bidict.mirror[self.request])) / max(len(s) for s in self.services)
 
-        # resource consumption depend on placement decisions; use the mean resource demand 
+        # resource consumption depend on placement decisions; use the mean resource demand
+        #资源消耗取决于布局决策；使用平均资源需求
         cdemands, mdemands = [], []
         vnum = len(self.vtype_bidict.mirror[self.request])
         vtype = self.request.vtypes[vnum]
         config = self.vnfs[vtype]
-        
         for node in self.net.nodes:
             supplied_rate = sum([service.datarate for service in self.vtype_bidict[(node, vtype)]])
             after_cdem, after_mdem = self.score(supplied_rate + self.request.datarate, config)

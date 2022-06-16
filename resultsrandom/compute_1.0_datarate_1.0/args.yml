@@ -1,0 +1,5 @@
+agent: results/compute_1.0_datarate_1.0/agent.yml
+episodes: 10
+experiment: results/compute_1.0_datarate_1.0/experiment.yml
+logdir: results/compute_1.0_datarate_1.0
+seed: 0

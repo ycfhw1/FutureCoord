@@ -3,7 +3,6 @@ import sys
 import yaml
 import argparse
 from pathlib import Path
-
 import numpy as np
 import pandas as pd
 from munch import munchify, unmunchify
@@ -27,6 +26,7 @@ parser.add_argument('--logdir', type=str, default='./results/')
 parser.add_argument('--seed', type=int, default=0)
 
 # arguments to specify properties of simulation process
+#用于指定模拟过程属性的参数
 parser.add_argument('--oracle', dest='oracle', action='store_true')
 
 
@@ -54,6 +54,7 @@ if __name__ == '__main__':
     # load VNF configurations from file 
     with open(exp.vnfs) as file:
         vnfs = pd.read_csv(file)
+        #iterrows代表行迭代器
         vnfs = [config.to_dict() for _, config in vnfs.iterrows()] 
 
     # load service configurations from files
@@ -70,20 +71,25 @@ if __name__ == '__main__':
         yaml.dump(evaluation, file)    
 
     for ep in range(args.episodes):
+
         train_rng = np.random.default_rng(seed=sys.maxsize - ep)
         sim_rng = np.random.default_rng(seed=sys.maxsize - ep)
         eval_rng = np.random.default_rng(seed=ep)
 
-        # determine to-be-used day for endpoint probability matrix 
+        # determine to-be-used day for endpoint probability matrix
+        #eday变量表示随机选取一天的流量来进行仿真
         eday = rng.integers(0, NUM_DAYS) 
 
         # determine to-be used days for arrival rates of each service; setup service traffic
+        #确定每项服务的到达率使用天数；设置流量矩阵
+        #array[1*5]
         sdays = rng.integers(0, NUM_DAYS, size=len(services) + 1)
         train_process = utils.setup_process(train_rng, exp, services, eday, sdays, exp.load, exp.datarate, exp.latency)        
+        #Traffic对象包含4个ServiceTraffic组成的processes对象
         eval_process = utils.setup_process(eval_rng, exp, services, eday, sdays, exp.load, exp.datarate, exp.latency)
+        #current all requests,需要处理的所有请求
         eval_process = TrafficStub(eval_process.sample())
         sim_process = utils.setup_sim_process(rng, sim_rng, exp, args, eval_process, services, eday, sdays, exp.sim_load, exp.sim_datarate, exp.sim_latency)
-
 
         # setup training environment where traffic is seeded with `train_rng` random number generator
         chains = [service.vnfs for service in services]
@@ -94,12 +100,11 @@ if __name__ == '__main__':
         # setup and train agent on environmnet according to configuration
         config.policy.tensorboard_log = log_train
         agent = utils.setup_agent(config, monitor, seed=ep)
+        #random策略不学习,不是，所有算法都不学习啊
         agent.learn(**unmunchify(config.train))
-
         # setup evaluation environment with traffic seeded by `eval_rng`
         env.replace_process(eval_process)
         monitor = CoordMonitor(ep, config.name, env, log_eval)
-
         # evaluate agent on evaluation environment
         ep_results = utils.evaluate_episode(agent, monitor, sim_process)
         ep_results = {ep: ep_results}

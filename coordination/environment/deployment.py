@@ -25,9 +25,9 @@ class ServiceCoordination(gym.Env):
         self.NUM_NODES = self.net.number_of_nodes()
         self.MAX_DEGREE = max([deg for _, deg in self.net.degree()])
         self.MAX_COMPUTE = self.net.graph['MAX_COMPUTE']
-        self.MAX_LINKRATE = self.net.graph['MAX_LINKRATE']      # in MB/s
-        self.MAX_MEMORY = self.net.graph['MAX_MEMORY']          # in MB
-        self.HOPS_DIAMETER = self.net.graph['HOPS_DIAMETER']    # in ms
+        self.MAX_LINKRATE = self.net.graph['MAX_LINKRATE']  # in MB/s
+        self.MAX_MEMORY = self.net.graph['MAX_MEMORY']  # in MB
+        self.HOPS_DIAMETER = self.net.graph['HOPS_DIAMETER']  # in ms
         self.PROPAGATION_DIAMETER = self.net.graph['PROPAGATION_DIAMETER']  # in ms
 
         self.process: Traffic = process
@@ -51,7 +51,7 @@ class ServiceCoordination(gym.Env):
             self.services) + len(self.vnfs) + len(self.net.nodes) + 4
         self.GRAPH_REPR_SIZE = len(self.vnfs) + 3
         self.OBS_SIZE = len(self.net.nodes) * self.NODE_REPR_SIZE + \
-            self.SERVICE_REPR_SIZE + self.GRAPH_REPR_SIZE
+                        self.SERVICE_REPR_SIZE + self.GRAPH_REPR_SIZE
         self.observation_space = spaces.Box(
             low=0.0, high=1.0, shape=(self.OBS_SIZE,), dtype=np.float16)
 
@@ -133,7 +133,7 @@ class ServiceCoordination(gym.Env):
 
         # (2) one-hot encoding of requested service type
         stype = [1.0 if service ==
-                 self.request.service else 0.0 for service in self.services]
+                        self.request.service else 0.0 for service in self.services]
 
         # (3) count encoding of to-be-deployed VNFs for requested service
         counter = Counter(self.request.vtypes[vnum:])
@@ -148,10 +148,10 @@ class ServiceCoordination(gym.Env):
 
         # (6) one-hot encoding of request's egress node
         egress_enc = [1.0 if node ==
-                      self.request.egress else 0.0 for node in self.net.nodes]
+                             self.request.egress else 0.0 for node in self.net.nodes]
 
         service_stats = [crelease, mrelease, *stype, *
-                         vnf_counts, datarate, resd_lat, *egress_enc]
+        vnf_counts, datarate, resd_lat, *egress_enc]
 
         # encode graph level statistics:
         # (1) number of deployed instances for each type of VNF
@@ -176,7 +176,7 @@ class ServiceCoordination(gym.Env):
 
         # reset tracked information for prior request when `action` deploys the next service's initial component
         if not self.request in self.vtype_bidict.mirror:
-            self.occupied = {'compute': 0.0, 'memory': 0.0, 'datarate': 0.0} 
+            self.occupied = {'compute': 0.0, 'memory': 0.0, 'datarate': 0.0}
             self.admission = {'deployed': False, 'finalized': False}
 
         # check whether action is valid; terminate episode otherwise
@@ -215,7 +215,8 @@ class ServiceCoordination(gym.Env):
                 # compute valid shortest path (latency) routing towards egress
                 # NOTE: throws error if not reachable or shortest path has (cumulated) weight > cutoff
                 _, route = nx.single_source_dijkstra(
-                    self.net, source=action, target=self.request.egress, weight=self.get_weights, cutoff=self.request.resd_lat)
+                    self.net, source=action, target=self.request.egress, weight=self.get_weights,
+                    cutoff=self.request.resd_lat)
 
                 # case: a valid route to the service's egress node exists; service deployment successful
                 # update network state, i.e. steer traffic towards egress
@@ -408,7 +409,7 @@ class ServiceCoordination(gym.Env):
 
     def steer_traffic(self, route: List) -> None:
         '''Steer traffic from node-to-node across the given route.'''
-        
+
         for (src, trg) in route:
             # update residual datarate & latency that remains after steering action
             self.datarate[frozenset({src, trg})] -= self.request.datarate
@@ -417,7 +418,7 @@ class ServiceCoordination(gym.Env):
             # register link to routing (link embeddings) of `self.request`
             self.routes_bidict[self.request] = (src, trg)
 
-        # track increase of resources occupied by the service deployment 
+        # track increase of resources occupied by the service deployment
         datarate = len(route) * self.request.datarate
         occupied = {'compute': 0.0, 'memory': 0.0, 'datarate': datarate}
         self.occupied = {key: self.occupied[key] + occupied[key] for key in occupied}
@@ -432,9 +433,8 @@ class ServiceCoordination(gym.Env):
         before = self.score(supplied_rate, config)
         after = self.score(supplied_rate + self.request.datarate, config)
         compute, memory = np.subtract(after, before)
-        
-        return compute, memory
 
+        return compute, memory
 
     def place_vnf(self, node: int) -> bool:
         '''Deploys the to-be-placed VNF on `node` and establishes its connection to the service.'''
@@ -446,7 +446,7 @@ class ServiceCoordination(gym.Env):
         self.computing[node] -= compute
         self.memory[node] -= memory
 
-        # track increase of resources occupied by the service deployment 
+        # track increase of resources occupied by the service deployment
         occupied = {'compute': compute, 'memory': memory, 'datarate': 0.0}
         self.occupied = {key: self.occupied[key] + occupied[key] for key in occupied}
 
@@ -459,6 +459,9 @@ class ServiceCoordination(gym.Env):
 
         # the service is completely deployed; register demanded resources for deletion after duration is exceeded
         if len(self.vtype_bidict.mirror[self.request]) >= len(self.request.vtypes):
+            print(self.vtype_bidict.mirror[self.request])
+            print(self.request.vtypes)
+            print("够了,不要再部署了")
             return True
 
         return False
@@ -475,7 +478,7 @@ class ServiceCoordination(gym.Env):
         return delay
 
     def update_actions(self) -> None:
-        '''Update the set of valid placement actions and their respective routings.''' 
+        '''Update the set of valid placement actions and their respective routings.'''
         # return if simulation episode is already done
         if self.done:
             return
@@ -493,7 +496,7 @@ class ServiceCoordination(gym.Env):
         vnum = len(self.vtype_bidict.mirror[self.request])
         vtype = self.request.vtypes[vnum]
         cdemands, mdemands = {}, {}
-        
+
         for node in routes:
             compute, memory = self.compute_resources(node, vtype)
             cdemands[node] = compute
@@ -505,7 +508,8 @@ class ServiceCoordination(gym.Env):
 
         # cache valid routes for the upcoming time step
         self.valid_routes = {node: ServiceCoordination.get_edges(route) for node,
-                             route in routes.items() if node in valid_nodes}
+                                                                            route in routes.items() if
+                             node in valid_nodes}
 
     def replace_process(self, process):
         '''Replace traffic process used to generate request traces.'''
@@ -533,10 +537,10 @@ class ServiceCoordination(gym.Env):
                                        for node, _ in self.computing.items()]
             ctable = tabulate(rtable, headers=cheaders, tablefmt='github')
             cutil = 1 - np.mean([self.computing[n] / self.net.nodes[n]
-                                 ['compute'] for n in self.net.nodes])
+            ['compute'] for n in self.net.nodes])
             mutil = 1 - \
-                np.mean([self.memory[n] / self.net.nodes[n]['memory']
-                         for n in self.net.nodes])
+                    np.mean([self.memory[n] / self.net.nodes[n]['memory']
+                             for n in self.net.nodes])
 
             max_cap = [self.net.edges[e]['datarate'] for e in self.net.edges]
             cap = [self.datarate[frozenset({*e})] for e in self.net.edges]
@@ -547,7 +551,8 @@ class ServiceCoordination(gym.Env):
             vnum = len(self.vtype_bidict.mirror[self.request])
             vtype = self.request.vtypes[vnum]
             str_repr = '\n'.join(
-                (ctable, f'Time: {self.time}', f'Request: {str(self.request)}->{vtype}', f'Available Routes: {self.valid_routes}', f'Graph Stats: {graph_stats}' '\n\n'))
+                (ctable, f'Time: {self.time}', f'Request: {str(self.request)}->{vtype}',
+                 f'Available Routes: {self.valid_routes}', f'Graph Stats: {graph_stats}' '\n\n'))
             return str_repr
 
         if self.pos is None:
@@ -560,8 +565,11 @@ class ServiceCoordination(gym.Env):
         propagation = {
             edge: self.propagation[edges[edge]] for edge in self.net.edges}
 
-        def link_rate(edge): return round(datarate[edge], 2)
-        def delay(edge): return round(propagation[edge], 2)
+        def link_rate(edge):
+            return round(datarate[edge], 2)
+
+        def delay(edge):
+            return round(propagation[edge], 2)
 
         _, service_pos = self.routes_bidict[self.request][-1]
         valid_placements = self.valid_routes.keys()
@@ -617,10 +625,10 @@ class ServiceCoordination(gym.Env):
 
         # score VNF resources by polynomial fit
         compute = config['coff'] + config['ccoef_1'] * rate + config['ccoef_2'] * \
-            (rate**2) + config['ccoef_3'] * \
-            (rate**3) + config['ccoef_4'] * (rate**4)
+                  (rate ** 2) + config['ccoef_3'] * \
+                  (rate ** 3) + config['ccoef_4'] * (rate ** 4)
         memory = config['moff'] + config['mcoef_1'] * rate + config['mcoef_2'] * \
-            (rate**2) + config['mcoef_3'] * \
-            (rate**3) + config['mcoef_3'] * (rate**4)
+                 (rate ** 2) + config['mcoef_3'] * \
+                 (rate ** 3) + config['mcoef_3'] * (rate ** 4)
 
         return (max(0.0, compute), max(0.0, memory))

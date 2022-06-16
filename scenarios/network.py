@@ -22,7 +22,7 @@ parser.add_argument('--compute', nargs='+', type=float)
 parser.add_argument('--datarate', nargs='+', type=float)
 
 # define parameters of to-be-evaluated experiment
-parser.add_argument('--experiment', type=str, default='./data/experiments/abilene/trace/trace.yml')
+parser.add_argument('--experiment', type=str, default='./data/experiments/abilene/trace.yml')
 parser.add_argument('--agent', type=str, default='./data/configurations/random.yml')
 parser.add_argument('--episodes', type=int, default=10)
 parser.add_argument('--logdir', type=str, default='./results/')

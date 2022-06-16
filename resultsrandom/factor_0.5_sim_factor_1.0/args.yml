@@ -1,0 +1,7 @@
+agent: /home/xiaofu/FutureCoord/results/factor_0.5_sim_factor_1.0/agent.yml
+episodes: 10
+experiment: /home/xiaofu/FutureCoord/results/factor_0.5_sim_factor_1.0/experiment.yml
+logdir: /home/xiaofu/FutureCoord/results/factor_0.5_sim_factor_1.0
+oracle: false
+seed: 0
+traffic: accurate
