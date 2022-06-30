@@ -22,6 +22,7 @@ class ServiceCoordination(gym.Env):
         # initalize constants from graph description
         self.net_path = net_path
         self.net = nx.read_gpickle(self.net_path)
+        print()
         self.NUM_NODES = self.net.number_of_nodes()
         self.MAX_DEGREE = max([deg for _, deg in self.net.degree()])
         self.MAX_COMPUTE = self.net.graph['MAX_COMPUTE']
