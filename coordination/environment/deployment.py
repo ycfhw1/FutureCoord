@@ -69,6 +69,7 @@ class ServiceCoordination(gym.Env):
     def compute_node_state(self, node) -> np.ndarray:
         '''Define node level statistics for state representation.'''
         if not node in self.valid_routes:
+            print("hello")
             nstate = [0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0]
             return nstate
 
