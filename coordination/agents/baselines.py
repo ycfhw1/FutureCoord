@@ -12,8 +12,8 @@ from stable_baselines3.a2c import A2C
 from stable_baselines3.common.preprocessing import maybe_transpose
 from stable_baselines3.common.utils import is_vectorized_observation
 from stable_baselines3.ppo import PPO
-from sb3_contrib.tqc import TQC
-from sb3_contrib.qrdqn import QRDQN
+#from sb3_contrib.tqc import TQC
+#from sb3_contrib.qrdqn import QRDQN
 from stable_baselines3.ppo.policies import MlpPolicy
 
 from coordination.environment.traffic import Request

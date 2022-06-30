@@ -10,7 +10,7 @@ from timeit import default_timer as timer
 
 from script import NUM_DAYS
 from coordination.agents import baselines, grc, mcts, nfvdeep
-from coordination.environment.deployment2 import ServiceCoordination
+from coordination.environment.deployment import ServiceCoordination
 from coordination.environment.traffic import ServiceTraffic, Traffic, TrafficStub
 
 #返回的是一系列的各种类型的流量集合
@@ -26,9 +26,11 @@ def setup_process(rng, exp, services, eday, sdays, load, rate, latency):
     # compute shortest paths in terms of propagation delays to define max. end-to-end latencies
     #按照预定权重升序来输出所有路径
     G = nx.read_gpickle(exp.overlay)
+    #spaths represents the propagation between physical nodes
     spaths = dict(nx.all_pairs_dijkstra_path_length(G, weight='propagation'))
     processes = []
     #5个服务对应5天流量
+    #yi ge endpoints yi ge traffic
     for snum, (service, day) in enumerate(zip(services, sdays)):
         traffic = service.process.marrival
         with open(traffic, 'rb') as file:
@@ -40,7 +42,7 @@ def setup_process(rng, exp, services, eday, sdays, load, rate, latency):
         #按比例因子放大分布的平均值（通常设置为1.0）
         service.datarates.loc = service.datarates.loc * rate 
         service.latencies.loc = service.latencies.loc * latency 
-        #生成服务流量
+        #生成服务流量,service.process is the process read from the service file
         process = ServiceTraffic(rng, snum, exp.time_horizon, service.process, service.datarates, service.latencies, endpoints, traffic, spaths)
         processes.append(process)
 

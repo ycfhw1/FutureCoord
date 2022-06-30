@@ -41,12 +41,13 @@ class ServiceTraffic:
         self.latencies = latencies
         self.endpoints = endpoints
         self.spaths = spaths
-
+        self.rates=rates
         # create time function for inhomogenous poisson process
         #非齐次泊松过程时间函数的建立
         T = np.linspace(0.0, horizon - 1, horizon)
         #成为连续数组,因为部分操作导致数据在内存上不是连续的
         rates = np.ascontiguousarray(rates)
+        #rates就是 那个传说中的lamda， 实际 上给个数就好了。是 必须要43个数
         self.rate_function = TimeFunction((T, rates))
 
     def sample_arrival(self, horizon):
@@ -64,7 +65,7 @@ class ServiceTraffic:
     def sample_arrival2(self, horizon):
         poi_seed = self.rng.integers(0, self.MAX_SEED)
         poi_seed = int(poi_seed)
-        in_poisson = SimuPoissonProcess(1.0, end_time=horizon, verbose=False, seed=poi_seed)
+        in_poisson = SimuPoissonProcess(2.0, end_time=horizon, verbose=False, seed=poi_seed)
         in_poisson.track_intensity()
         in_poisson.simulate()
         arrivals = in_poisson.timestamps[0]
@@ -84,7 +85,7 @@ class ServiceTraffic:
         a, b = self.datarates['a'], self.datarates['b']
 
         a, b = (a - mean) / scale, (b - mean) / scale
-        #生成1000个数按伪随机数生成
+        #生成1000个数按伪随机数生成, 按照 给定的分布生成随机数
         datarates = stats.truncnorm.rvs(a, b, mean, scale, size=size, random_state=self.rng)
         return datarates
 
@@ -102,27 +103,27 @@ class ServiceTraffic:
 
     def sample_endpoints(self, arrivals):
         ingresses, egresses = [], []
-
+        #every time five service is chosen,arrivals is their time sampled
         for arrival in arrivals:
             # get endpoint probability matrix for respective timestep
             #获取各个时间区间内的起终点概率矩阵
             timestep = int(np.floor(arrival))
+            #12*12
             prob = self.endpoints[timestep]
-
             # sample ingress / egress from probability matrix
             #将多维数组转化为一维数组
             flatten = prob.ravel()
             index = np.arange(flatten.size)
             #numpy.unravel_index()函数的作用是获取一个/组int类型的索引值在一个多维数组中的位置。
             ingress, egress = np.unravel_index(
-                self.rng.choice(index, p=flatten), prob.shape)
+                self.rng.choice(index, p=None), prob.shape)
             ingresses.append(ingress)
             egresses.append(egress)
         return ingresses, egresses
 
     def sample(self):
         # sample parameters for each service from distribution functions
-        arrival = self.sample_arrival(self.horizon)
+        arrival = self.sample_arrival2(self.horizon)
         duration = self.sample_duration(len(arrival))
         #根据离散时间的到达率生成请求实例
         ingresses, egresses = self.sample_endpoints(arrival)

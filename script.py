@@ -11,16 +11,16 @@ from stable_baselines3.common.monitor import Monitor
 import coordination.evaluation.utils as utils
 from coordination.environment.traffic import TrafficStub
 from coordination.evaluation.monitor import CoordMonitor
-from coordination.environment.deployment import ServiceCoordination
+from coordination.environment.deployment2 import ServiceCoordination
 
 
-NUM_DAYS = 167
+NUM_DAYS = 6
 
 
 parser = argparse.ArgumentParser()
 # arguments to specify the experiment, agent & evaluation 
-parser.add_argument('--experiment', type=str, default='./data/experiments/abilene/trace.yml')
-parser.add_argument('--agent', type=str, default='./data/configurations/random.yml')
+parser.add_argument('--experiment', type=str, default='./data/experiments/germany50/trace.yml')
+parser.add_argument('--agent', type=str, default='./data/configurations/grc.yml')
 parser.add_argument('--episodes', type=int, default=10)
 parser.add_argument('--logdir', type=str, default='./results/')
 parser.add_argument('--seed', type=int, default=0)

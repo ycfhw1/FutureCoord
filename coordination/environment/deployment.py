@@ -459,9 +459,6 @@ class ServiceCoordination(gym.Env):
 
         # the service is completely deployed; register demanded resources for deletion after duration is exceeded
         if len(self.vtype_bidict.mirror[self.request]) >= len(self.request.vtypes):
-            print(self.vtype_bidict.mirror[self.request])
-            print(self.request.vtypes)
-            print("够了,不要再部署了")
             return True
 
         return False

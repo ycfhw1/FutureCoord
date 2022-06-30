@@ -36,17 +36,17 @@ def graphml_reader(seed, compute, bandwidth, inputfile, outputfile):
     for e in network.edges():
         n1 = network.nodes(data=True)[e[0]]
         n2 = network.nodes(data=True)[e[1]]
-        if n1['Internal'] == 0 or n2['Internal'] == 0:
+        if n1[1].get('Internal') == 0 or n1[1].get('Internal') == 0:
             continue
-        n1_lat, n1_long = n1.get("Latitude"), n1.get("Longitude")
-        n2_lat, n2_long = n2.get("Latitude"), n2.get("Longitude")
+        n1_lat, n1_long = n1[1].get("Latitude"), n1[1].get("Longitude")
+        n2_lat, n2_long = n2[1].get("Latitude"), n2[1].get("Longitude")
         distance = geodesic((n1_lat, n1_long),
                             (n2_lat, n2_long)).meters  # in meters
         delay = (distance / SPEED_OF_LIGHT * 1000) * \
             PROPAGATION_FACTOR  # in milliseconds
 
         # This is not normalized
-        newnetwork.add_edge(mapping[e[0]], mapping[e[1]], latency=float(
+        newnetwork.add_edge(e[0], e[1], latency=float(
             delay), bandwidth=random.uniform(*bandwidth))
 
     nx.write_gpickle(newnetwork, outputfile)
@@ -64,7 +64,7 @@ if __name__ == "__main__":
     parser.add_argument('--inputfile', type=str, nargs='?',
                         const=1)
     parser.add_argument('--outputfile', type=str, nargs='?',
-                        const=1, default=r'./data/network.gpickle')
+                        const=1, default=r'../data/network.gpickle')
     args = parser.parse_args()
 
     # bounds for the resources - should be normalized between 0 and 1

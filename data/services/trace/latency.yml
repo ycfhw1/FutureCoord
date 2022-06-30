@@ -10,15 +10,15 @@ process:  # time measured in seconds
 
 datarates:  # datarates measured in MB/s
   distr: trcnormal
-  loc: 196.3          # roughly 1/4th of the max. rate of bottleneck service haproxy (cpu)  
+  loc: 88.3          # roughly 1/4th of the max. rate of bottleneck service haproxy (cpu)
   scale: 39.25        # roughly 1/5th of the mean requested datarate
   a: 78.5             # roughly 1/10 of the max.rate of bottleneck haproxy (cpu)
   b: 785.3            # roughly the max. rate of bottleneck haproxy (cpu)
 
 latencies:  
   distr:  trcnormal
-  loc: 1.0           
+  loc: 3.0
   scale: 0.001            # must be embedded along the shortest path         
-  a: 1.0              
+  a: 3.0
   b: .inf             
             

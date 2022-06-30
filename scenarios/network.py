@@ -23,7 +23,7 @@ parser.add_argument('--datarate', nargs='+', type=float)
 
 # define parameters of to-be-evaluated experiment
 parser.add_argument('--experiment', type=str, default='./data/experiments/abilene/trace.yml')
-parser.add_argument('--agent', type=str, default='./data/configurations/random.yml')
+parser.add_argument('--agent', type=str, default='./data/configurations/futuremavenS.yml')
 parser.add_argument('--episodes', type=int, default=10)
 parser.add_argument('--logdir', type=str, default='./results/')
 parser.add_argument('--seed', type=int, default=0)
@@ -54,7 +54,7 @@ if __name__ == '__main__':
 
     for compute, datarate in zip(args.compute, args.datarate):
         path = logdir / f'compute_{compute}_datarate_{datarate}'
-        path.mkdir()
+        os.makedirs(path)
 
         exp = deepcopy(experiment)
         exp.overlay = str(path / 'overlay.gpickle')
