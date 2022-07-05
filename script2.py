@@ -1,10 +1,9 @@
-import os
-import sys
-import yaml
 import argparse
+import sys
 from pathlib import Path
 import numpy as np
 import pandas as pd
+import yaml
 from munch import munchify, unmunchify
 from stable_baselines3.common.monitor import Monitor
 
@@ -18,9 +17,9 @@ NUM_DAYS = 6
 
 
 parser = argparse.ArgumentParser()
-# arguments to specify the experiment, agent & evaluation 
+# arguments to specify the experiment, agent & evaluation
 parser.add_argument('--experiment', type=str, default='./data/experiments/germany50/trace.yml')
-parser.add_argument('--agent', type=str, default='./data/configurations/PPO.yml')
+parser.add_argument('--agent', type=str, default='./data/configurations/random.yml')
 parser.add_argument('--episodes', type=int, default=10)
 parser.add_argument('--logdir', type=str, default='./results/')
 parser.add_argument('--seed', type=int, default=0)
@@ -96,7 +95,10 @@ if __name__ == '__main__':
         # setup training environment where traffic is seeded with `train_rng` random number generator
         chains = [service.vnfs for service in services]
         #setup the env,train use the train process
-        env = utils.setup_simulation(config, exp.overlay, train_process, vnfs, chains)
+        request_list=[]
+        for req in train_process:
+            request_list.append(req)
+        env = utils.setup_simulation2(config, exp.overlay, request_list, vnfs, chains)
         env.logger.disabled = True
         monitor = Monitor(env, str(log_train))
 
@@ -123,29 +125,12 @@ if __name__ == '__main__':
         # sim_process = utils.setup_sim_process(rng, sim_rng, exp, args, eval_process, services, eday, sdays,
         #                                       exp.sim_load, exp.sim_datarate, exp.sim_latency)
         chains = [service.vnfs for service in services]
-        env = utils.setup_simulation(config, exp.overlay, eval_process, vnfs, chains)
+        request_list=[]
+        for req in eval_process:
+            request_list.append(req)
+        env = utils.setup_simulation(config, exp.overlay, request_list, vnfs, chains)
         monitor = CoordMonitor(ep, config.name, env, log_eval)
         # evaluate agent on evaluation environment
         ep_results = utils.evaluate_episode(agent, monitor, eval_process)
         ep_results = {ep: ep_results}
         utils.save_ep_results(ep_results, log_results)
-
-
-
-
-        
-
-
-
-
-
-
-
-    
-        
-
-        
-
-            
-
-        

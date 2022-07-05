@@ -4,9 +4,9 @@ from more_itertools import peekable
 from pairing_functions import cantor, szudzik
 
 if __name__ == '__main__':
-    np.set_printoptions(threshold=np.inf)
-    # test_network=nx.read_gpickle("/home/xiaofu/FutureCoord/data/experiments/germany50/germany50.gpickle")
-    # print(test_network)
+    # np.set_printoptions(threshold=np.inf)
+    # test_network=nx.read_gpickle("/home/hello/桌面/xiaofu/FutureCoord/utils/chinanet.gpickle")
+    # print(test_network.graph)
     # #marrival平均到达概率
     # with open('/home/hello/下载/germany50.npy', 'rb') as file:
     #     newendpoints=np.empty(shape=(6,43,50,50))
@@ -19,9 +19,9 @@ if __name__ == '__main__':
     #             index1=index1+1
     #     print(index1)
     #     np.save("germany50.npy",newendpoints)
-    with open('/home/hello/桌面/xiaofu/FutureCoord/data/rates/trace/2.npy', 'rb') as file:
-        traffic=np.load(file)
-        print(traffic)
+    # with open('/home/hello/桌面/xiaofu/FutureCoord/data/rates/trace/2.npy', 'rb') as file:
+    #     traffic=np.load(file)
+    #     print(traffic)
     # seed=10
     # print(cantor.pair(1,2))
     # print(cantor.pair(1, 2))
@@ -31,3 +31,13 @@ if __name__ == '__main__':
     # p=peekable(a)
     # while True:
     #     print(type(next(p)))
+    results = np.random.random(size=100)
+    results_list=[]
+    for result in results:
+        if result > 0.5:
+            result = 1
+            results_list.append(result)
+        else:
+            result = 0
+            results_list.append(result)
+    print(results_list)

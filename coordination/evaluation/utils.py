@@ -8,6 +8,7 @@ from copy import deepcopy
 from munch import unmunchify
 from timeit import default_timer as timer
 
+from coordination.environment.deployment3 import ServiceCoordination2
 from script import NUM_DAYS
 from coordination.agents import baselines, grc, mcts, nfvdeep
 from coordination.environment.deployment import ServiceCoordination
@@ -27,11 +28,13 @@ def setup_process(rng, exp, services, eday, sdays, load, rate, latency):
     #按照预定权重升序来输出所有路径
     G = nx.read_gpickle(exp.overlay)
     #spaths represents the propagation between physical nodes
+    #all the nodes.between two nodes the shortestest propagation path length
     spaths = dict(nx.all_pairs_dijkstra_path_length(G, weight='propagation'))
     processes = []
     #5个服务对应5天流量
     #yi ge endpoints yi ge traffic
     for snum, (service, day) in enumerate(zip(services, sdays)):
+        #service.process is a yaml object read from the file
         traffic = service.process.marrival
         with open(traffic, 'rb') as file:
             traffic = np.load(file)
@@ -96,6 +99,8 @@ def setup_agent(config, env, seed):
         raise ValueError('Unknown agent.')
 
     return agent
+def setup_agent2(config,env,seed):
+    pass
 
 def evaluate_episode(agent, monitor, process):
     start = timer()
@@ -156,6 +161,9 @@ def setup_simulation(config, overlay, process, vnfs, services):
         return nfvdeep.NFVdeepCoordination(overlay, process, vnfs, services)
     else:
         return ServiceCoordination(overlay, process, vnfs, services)
+#offline deploy
+def setup_simulation2(config, overlay, requests_list, vnfs, services):
+        return ServiceCoordination2(overlay, requests_list, vnfs, services,0)
 
 def sample_excluding(rng, lower, upper, excluding):
     numbers = [n for n in range(lower, upper) if n != excluding]    

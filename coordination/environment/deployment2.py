@@ -102,6 +102,7 @@ class ServiceCoordination(gym.Env):
         vnum = len(self.vtype_bidict.mirror[self.request])
         vtype = self.request.vtypes[vnum]
         config = self.vnfs[vtype]
+        #current_time all datarate used by the current node for this vtype
         supplied_rate = sum(
             [service.datarate for service in self.vtype_bidict[(node, vtype)]])
         # consumedemand,根据数据速率计算vnf需求
@@ -367,7 +368,7 @@ class ServiceCoordination(gym.Env):
             # progress_time逻辑被重构成窗口内是否还有请求未尝试部署
             self.progress_time2()
         return self.compute_state()
-
+    #compte the reward according to the service type,this is chaned by me,it may be changed
     def compute_reward(self, finalized: bool, deployed: bool, req: Request) -> float:
         '''Reward agents upon the acceptance of requested services.'''
         # 部署成功，奖励1.0

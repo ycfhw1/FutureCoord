@@ -16,9 +16,9 @@ from coordination.environment.bidict import BiDict
 from coordination.environment.traffic import Request, Traffic
 
 
-class ServiceCoordination(gym.Env):
+class ServiceCoordination2(gym.Env):
 
-    def __init__(self, net_path: str, process: Traffic, vnfs: List, services: List):
+    def __init__(self, net_path: str, requests_list: List, vnfs: List, services: List,time):
         # initalize constants from graph description
         self.net_path = net_path
         self.net = nx.read_gpickle(self.net_path)
@@ -30,8 +30,9 @@ class ServiceCoordination(gym.Env):
         self.MAX_MEMORY = self.net.graph['MAX_MEMORY']  # in MB
         self.HOPS_DIAMETER = self.net.graph['HOPS_DIAMETER']  # in ms
         self.PROPAGATION_DIAMETER = self.net.graph['PROPAGATION_DIAMETER']  # in ms
-
-        self.process: Traffic = process
+        self.time = time
+        self.last_time=self.time-5
+        self.requests_list: List = requests_list
         self.vnfs: List[dict] = vnfs
         self.services: List[List[int]] = services
         self.NUM_SERVICES = len(self.services)
@@ -227,7 +228,7 @@ class ServiceCoordination(gym.Env):
 
                 # case: a valid route to the service's egress node exists; service deployment successful
                 # update network state, i.e. steer traffic towards egress
-                route = ServiceCoordination.get_edges(route)
+                route = ServiceCoordination2.get_edges(route)
                 self.steer_traffic(route)
 
                 # register successful service embedding for deletion after duration passed
@@ -282,8 +283,8 @@ class ServiceCoordination(gym.Env):
         '''Reset environment after episode is finished.'''
 
         # load graph from path, i.e. reset resource utilizations
-        self.trace = peekable(iter(self.process))
-        self.request = next(self.trace)
+        # self.trace = peekable(iter(self.process))
+        self.request = self.requests_list[0]
 
         # set service & VNF properties of request upon arrival
         self.request.resd_lat = self.request.max_latency
@@ -291,7 +292,7 @@ class ServiceCoordination(gym.Env):
 
         # reset environment's progress parameters
         self.done = False
-        self.time = self.request.arrival
+        # self.time = self.request.arrival
         self.num_requests = 1
 
         KEYS = ['accepts', 'requests', 'skipped_on_arrival', 'no_egress_route', 'no_extension', 'num_rejects',
@@ -354,19 +355,25 @@ class ServiceCoordination(gym.Env):
     def progress_time(self) -> bool:
         '''Proceed in time to the succeeding service request, update the network accordingly.'''
         # progress until the episode ends or an action must be taken
-        while self.trace:
+        while self.requests_list != []:
             # determine resource demands of request upon their initial arrival
-            self.request = next(self.trace)
+            #delete the first request
+            del self.requests_list[0]
+            self.request = self.requests_list[0]
             self.routes_bidict[self.request] = (None, self.request.ingress)
             self.info[self.request.service].requests += 1
 
             # set requested VNFs upon arrival of request
+            #inital the request
             self.request.resd_lat = self.request.max_latency
             self.request.vtypes = self.services[self.request.service]
 
             # update progress parameters of environment
-            self.time += self.request.arrival - self.time
-            self.num_requests += 1
+            #Todo:how to get the request arrival time
+            # self.time += self.request.arrival - self.time
+            # self.num_requests += 1
+            #update the time index,release the needed request
+            self.time =self.time +self.request.arrival-self.last_time
 
             # remove services that exceed their duration; free their allocated resources
             while self.deployed and self.deployed[0][0] < self.time:
@@ -511,15 +518,18 @@ class ServiceCoordination(gym.Env):
                        self.computing[node] and mdemands[node] <= self.memory[node]]
 
         # cache valid routes for the upcoming time step
-        self.valid_routes = {node: ServiceCoordination.get_edges(route) for node,
+        self.valid_routes = {node: ServiceCoordination2.get_edges(route) for node,
                                                                             route in routes.items() if
                              node in valid_nodes}
 
-    def replace_process(self, process):
+    # def replace_process(self, process):
+    #     '''Replace traffic process used to generate request traces.'''
+    #     self.process = process
+    #     self.reset()
+    def replace_requests(self, requests_list):
         '''Replace traffic process used to generate request traces.'''
-        self.process = process
+        self.requests_list =requests_list
         self.reset()
-
     def render(self, mode: str = 'None', close: bool = False) -> str:
         if mode == 'None' or self.done:
             return
