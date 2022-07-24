@@ -10,7 +10,7 @@ from timeit import default_timer as timer
 
 from coordination.environment.deployment3 import ServiceCoordination2
 from script import NUM_DAYS
-from coordination.agents import baselines, grc, mcts, nfvdeep
+from coordination.agents2 import baselines, grc, mcts, nfvdeep
 from coordination.environment.deployment import ServiceCoordination
 from coordination.environment.traffic import ServiceTraffic, Traffic, TrafficStub
 
@@ -109,6 +109,7 @@ def evaluate_episode(agent, monitor, process):
     
     while not monitor.env.done:
         #action代表当前VNF选择的节点
+
         action = agent.predict(observation=obs, env=monitor.env, process=process, deterministic=True)
         obs, reward, _, _ = monitor.step(action)
         ep_reward += reward
@@ -119,6 +120,26 @@ def evaluate_episode(agent, monitor, process):
     ep_results['time'] = end - start
     ep_results['agent']= agent.name
     return ep_results
+
+
+def evaluate_episode2(agent, monitor,process):
+    start = timer()
+    ep_reward = 0.0
+    obs = monitor.reset()
+    while not monitor.env.done:
+        # action代表当前VNF选择的节点
+
+        action = agent.predict(observation=obs, env=monitor.env,process=process, deterministic=True)
+        obs, reward, _, _ = monitor.step1(action)
+        ep_reward += reward
+    end = timer()
+
+    # get episode statistics from monitor
+    ep_results = monitor.get_episode_results()
+    ep_results['time'] = end - start
+    ep_results['agent'] = agent.name
+    return ep_results
+
 
 def save_ep_results(data, path):
     data = pd.DataFrame.from_dict(data, orient='index')

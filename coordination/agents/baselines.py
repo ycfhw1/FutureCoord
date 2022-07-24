@@ -7,13 +7,16 @@ import torch as th
 import numpy as np
 import numpy.ma as ma
 import networkx as nx
+from typing import Optional
 from stable_baselines3 import DQN
 from stable_baselines3.a2c import A2C
 from stable_baselines3.common.preprocessing import maybe_transpose
 from stable_baselines3.common.utils import is_vectorized_observation
+# from coordination.environment.admission_control import ServiceCoordination5
 from stable_baselines3.ppo import PPO
 #from sb3_contrib.tqc import TQC
 #from sb3_contrib.qrdqn import QRDQN
+# from sb3_contrib.ppo_mask import MaskablePPO
 from stable_baselines3.ppo.policies import MlpPolicy
 
 from coordination.environment.traffic import Request
@@ -30,8 +33,85 @@ class RandomPolicy:
     def predict(self, env, **kwargs):
         """Samples a valid action from all valid actions."""
         #sample process
-        valid_nodes = np.asarray([node for node in env.valid_routes])
-        return np.random.choice(valid_nodes)
+        valid_nodes = np.asarray([node for node in env.valid_actions])
+        if not (env.valid_actions):
+            return [5,0]
+        action0=np.random.choice(valid_nodes)
+        action1=1
+        return [action0,action1]
+
+class FCFSPolicy:
+    def __init__(self, seed=None, **kwargs):
+        np.random.seed(seed)
+        self.name='FCFSPOLICY'
+    #没有神经网络的直接predict下一步动作
+    def learn(self, **kwargs):
+        pass
+
+    def predict(self, env, **kwargs):
+        """Samples a valid action from all valid actions."""
+        #sample process
+        valid_nodes = np.asarray([node for node in env.valid_actions])
+        arrival_list=[]
+        for i in range(4):
+            if len(env.all_waiting_queues[i])!=0:
+                arrival_time=env.all_waiting_queues[i][0].arrival
+                arrival_list.append(arrival_time)
+            else:
+                arrival_list.append(1000)
+        m_sorted = sorted(enumerate(arrival_list), key=lambda x: x[1])
+
+        sorted_inds = [m[0] for m in m_sorted]
+
+        sorted_nums = [m[1] for m in m_sorted]
+        #所有队列均空
+        if arrival_list[0]==1000:
+            return 5
+        return sorted_inds[0]
+
+class LongestPolicy:
+    def __init__(self, seed=None, **kwargs):
+        np.random.seed(seed)
+        self.name='LongestPolicy'
+    #没有神经网络的直接predict下一步动作
+    def learn(self, **kwargs):
+        pass
+
+    def predict(self, env, **kwargs):
+        """Samples a valid action from all valid actions."""
+        #sample process
+        valid_nodes = np.asarray([node for node in env.valid_actions])
+        length_list=[]
+        for i in range(4):
+            if len(env.all_waiting_queues[i])!=0:
+                length=len(env.all_waiting_queues[i])
+                length_list.append(length)
+            else:
+                length_list.append(0)
+        m_sorted = sorted(enumerate(length_list), key=lambda x: x[1],reverse=True)
+
+        sorted_inds = [m[0] for m in m_sorted]
+
+        sorted_nums = [m[1] for m in m_sorted]
+        if length_list[0]==0:
+            return [5,0]
+        return [sorted_inds[0],1]
+
+class LongestResourceAwarePolicy:
+    def __init__(self, seed=None, **kwargs):
+        np.random.seed(seed)
+        self.name='LongestResourceAwarePolicy'
+    #没有神经网络的直接predict下一步动作
+    def learn(self, **kwargs):
+        pass
+
+    def predict(self, env, **kwargs):
+        """Samples a valid action from all valid actions."""
+        #sample process
+        valid_nodes = np.asarray([node for node in env.valid_actions])
+        length_list=[]
+        pass
+
 
 
 class AllCombinations:
@@ -145,28 +225,47 @@ class GreedyHeuristic:
 
         return action
 
+# class MaskedPPO(PPO):
+#     def predict(self, observation: th.Tensor, deterministic: bool = False, env=None, **kwargs):
+#         if deterministic and not env is None:
+#             observation = np.asarray(observation).reshape((-1,) + self.env.observation_space.shape)
+#             observation = th.as_tensor(observation).to('cpu')
+#
+#             # get action mask of valid choices from environment
+#             valid_actions = np.full(env.ACTION_DIM, False)
+#             valid = list(env.valid_actions.keys())
+#             valid_actions[valid] = True
+#             print("valid actions?")
+#             print(valid_actions)
+#             #stochastic differential equation随机微分方程
+#             latent_pi, _, latent_sde = self.policy._get_latent(observation)
+#             distribution = self.policy._get_action_dist_from_latent(latent_pi, latent_sde)
+#             #输出符合条件的动作的下标
+#             valid, = np.where(valid_actions)
+#             #将valid_actions进行重新编号
+#             actions = th.arange(valid_actions.size)
+#             log_prob = distribution.log_prob(actions).detach().cpu().numpy()
+#             print(log_prob)
+#             #np.ma代表掩码数组，用于筛选valid_actions
+#             action = ma.masked_array(log_prob, ~valid_actions, fill_value=np.NINF).argmax()
+#             print(ma.masked_array(log_prob, ~valid_actions, fill_value=np.NINF))
+#             print(action)
+#             return action
+#         observation = np.asarray(observation).reshape((-1,) + self.env.observation_space.shape)
+#         mask=np.array([observation[0],observation[1],observation[2],observation[3]])
+#         action, _ = super(PPO, self).predict(observation, deterministic,mask=mask)
+#         return action
+#
+#     def load(self, path, device='auto'):
+#         # when loading a pre-trained policy from `path`, do nothing upon call to `learn`
+#         self.policy = MlpPolicy.load(path, device)
+#
+#         def stub(*args, **kwargs):
+#             pass
+#
+#         self.learn = stub
 class MaskedPPO(PPO):
     def predict(self, observation: th.Tensor, deterministic: bool = False, env=None, **kwargs):
-        if deterministic and not env is None:
-            observation = np.asarray(observation).reshape((-1,) + self.env.observation_space.shape)
-            observation = th.as_tensor(observation).to('cpu')
-            
-            # get action mask of valid choices from environment 
-            valid_actions = np.full(env.ACTION_DIM, False)
-            valid = list(env.valid_routes.keys())
-            valid_actions[valid] = True
-            #stochastic differential equation随机微分方程
-            latent_pi, _, latent_sde = self.policy._get_latent(observation)
-            distribution = self.policy._get_action_dist_from_latent(latent_pi, latent_sde)
-            #输出符合条件的动作的下标
-            valid, = np.where(valid_actions)
-            #将valid_actions进行重新编号
-            actions = th.arange(valid_actions.size)
-            log_prob = distribution.log_prob(actions).detach().cpu().numpy()
-            #np.ma代表掩码数组，用于筛选valid_actions
-            action = ma.masked_array(log_prob, ~valid_actions, fill_value=np.NINF).argmax()
-            return action
-        
         action, _ = super(PPO, self).predict(observation, deterministic)
         return action
 
@@ -179,30 +278,59 @@ class MaskedPPO(PPO):
 
         self.learn = stub
 
-
 class MaskedA2C(A2C):
     def predict(self, observation: th.Tensor, deterministic: bool = False, env=None, **kwargs):
-        if deterministic and not env is None:
-            observation = np.asarray(observation).reshape((-1,) + self.env.observation_space.shape)
-            observation = th.as_tensor(observation).to('cpu')
-
-            # get action mask of valid choices from environment
-            valid_actions = np.full(env.ACTION_DIM, False)
-            valid = list(env.valid_routes.keys())
-            valid_actions[valid] = True
-            # stochastic differential equation随机微分方程
-            latent_pi, _, latent_sde = self.policy._get_latent(observation)
-            distribution = self.policy._get_action_dist_from_latent(latent_pi, latent_sde)
-            # 输出符合条件的动作的下标
-            valid, = np.where(valid_actions)
-            # 将valid_actions进行重新编号
-            actions = th.arange(valid_actions.size)
-            log_prob = distribution.log_prob(actions).detach().cpu().numpy()
-            # np.ma代表掩码数组，用于筛选valid_actions
-            action = ma.masked_array(log_prob, ~valid_actions, fill_value=np.NINF).argmax()
-            return action
-
         action, _ = super(A2C, self).predict(observation, deterministic)
+        return action
+
+    def load(self, path, device='auto'):
+        # when loading a pre-trained policy from `path`, do nothing upon call to `learn`
+        self.policy = MlpPolicy.load(path, device)
+
+        def stub(*args, **kwargs):
+            pass
+
+        self.learn = stub
+
+
+# class MaskedA2C(A2C):
+#     def predict(self, observation: th.Tensor, deterministic: bool = False, env=None, **kwargs):
+#         if deterministic and not env is None:
+#             observation = np.asarray(observation).reshape((-1,) + self.env.observation_space.shape)
+#             observation = th.as_tensor(observation).to('cpu')
+#             # get action mask of valid choices from environment
+#             #all the available actions
+#             valid_actions = np.full(env.ACTION_DIM, False)
+#             valid = list(env.valid_actions.keys())
+#             valid_actions[valid] = True
+#             print(valid_actions)
+#             # stochastic differential equation随机微分方程
+#             latent_pi, _, latent_sde = self.policy._get_latent(observation)
+#             distribution = self.policy._get_action_dist_from_latent(latent_pi, latent_sde)
+#             # 输出符合条件的动作的下标
+#             valid, = np.where(valid_actions)
+#             # 将valid_actions进行重新编号
+#             actions = th.arange(valid_actions.size)
+#             log_prob = distribution.log_prob(actions).detach().cpu().numpy()
+#             # np.ma代表掩码数组，用于筛选valid_actions
+#             action = ma.masked_array(log_prob, ~valid_actions, fill_value=np.NINF).argmax()
+#             return action
+#
+#         action, _ = super(A2C, self).predict(observation, deterministic)
+#         return action
+#
+#     def load(self, path, device='auto'):
+#         # when loading a pre-trained policy from `path`, do nothing upon call to `learn`
+#         self.policy = MlpPolicy.load(path, device)
+#
+#         def stub(*args, **kwargs):
+#             pass
+#
+#         self.learn = stub
+
+class DQN(DQN):
+    def predict(self, observation: th.Tensor, deterministic: bool = False, env=None, **kwargs):
+        action, _ = super(DQN, self).predict(observation, deterministic)
         return action
 
     def load(self, path, device='auto'):

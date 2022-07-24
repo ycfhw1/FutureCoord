@@ -63,9 +63,9 @@ class ServiceTraffic:
 
     #齐次泊松过程
     def sample_arrival2(self, horizon):
-        poi_seed = self.rng.integers(0, self.MAX_SEED)
+        poi_seed = 10
         poi_seed = int(poi_seed)
-        in_poisson = SimuPoissonProcess(2.0, end_time=horizon, verbose=False, seed=poi_seed)
+        in_poisson = SimuPoissonProcess(0.5, end_time=43, verbose=False, seed=poi_seed)
         in_poisson.track_intensity()
         in_poisson.simulate()
         arrivals = in_poisson.timestamps[0]
@@ -116,14 +116,14 @@ class ServiceTraffic:
             index = np.arange(flatten.size)
             #numpy.unravel_index()函数的作用是获取一个/组int类型的索引值在一个多维数组中的位置。
             ingress, egress = np.unravel_index(
-                self.rng.choice(index, p=None), prob.shape)
+                self.rng.choice(index, p=flatten), prob.shape)
             ingresses.append(ingress)
             egresses.append(egress)
         return ingresses, egresses
 
     def sample(self):
         # sample parameters for each service from distribution functions
-        arrival = self.sample_arrival2(self.horizon)
+        arrival = self.sample_arrival(self.horizon)
         duration = self.sample_duration(len(arrival))
         #根据离散时间的到达率生成请求实例
         ingresses, egresses = self.sample_endpoints(arrival)

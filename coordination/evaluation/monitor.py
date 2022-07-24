@@ -3,10 +3,9 @@ from munch import unmunchify
 from tensorboardX import SummaryWriter
 from stable_baselines3.common.monitor import Monitor
 
-
 class CoordMonitor(Monitor):
-    #记录最后的情况，并记录相关的原因
-    REQUEST_KEYS = ['accepts', 'requests', 'num_invalid', 'num_rejects', 'no_egress_route', 'no_extension', 'skipped_on_arrival']
+    REQUEST_KEYS = ['accepts', 'requests', 'num_invalid', 'num_rejects', 'no_egress_route', 'no_extension',
+                    'skipped_on_arrival']
     ACCEPTED_KEYS = ['cum_service_length', 'cum_route_hops', 'cum_datarate', 'cum_max_latency', 'cum_resd_latency']
     ACCEPTED_VALS = ['mean_service_len', 'mean_hops', 'mean_datarate', 'mean_latency', 'mean_resd_latency']
 
@@ -15,13 +14,14 @@ class CoordMonitor(Monitor):
         self.writer = SummaryWriter(filename)
         self.episode = episode
         self.tag = tag
+
         self.reset()
 
     def close(self):
         self.writer.flush()
         self.writer.close()
         super().close()
-    #将C-util等各项参数置为0
+
     def reset(self, **kwargs):
         self.c_util, self.m_util, self.d_util = [], [], []
 
@@ -29,20 +29,21 @@ class CoordMonitor(Monitor):
 
     def step(self, action):
         obs, reward, done, info = super().step(action)
+
         for service in range(len(self.env.services)):
             logs = unmunchify(self.env.info[service])
 
             for key in self.REQUEST_KEYS:
-                scalar = logs[key] / self.env.num_requests
+                scalar = logs[key] / (self.env.info[0].requests +self.env.info[1].requests +self.env.info[2].requests+self.env.info[3].requests)
                 tag = f'{self.tag}/{service}/{key}'
                 self.writer.add_scalar(tag, scalar, self.episode)
-            
+
             accepts = logs['accepts'] if logs['accepts'] > 0 else np.inf
             for key in self.ACCEPTED_KEYS:
                 scalar = logs[key] / accepts
                 tag = f'{self.tag}/{service}/{key}'
                 self.writer.add_scalar(tag, scalar, self.episode)
-        
+
         self.update_utilization()
 
         return obs, reward, done, info
@@ -68,15 +69,13 @@ class CoordMonitor(Monitor):
     def get_episode_results(self):
         ep = {}
         info = self.env.info
-        #info长度为4，代表每一种服务这个episode的统计信息
         info = [unmunchify(slogs) for slogs in info]
+
         # aggregate results over all provided services
-        #所有提供服务的汇总结果
-        num_requests = max(1, self.env.num_requests)
+        num_requests = max(1, sum(slogs['requests'] for slogs in info))
         total_accepts = max(1, sum(slogs['accepts'] for slogs in info))
         ep['accept_rate'] = total_accepts / num_requests
-        #np.prod用来计算所有元素的乘积
-        ep['balanced_accept_rate'] = np.prod([logs['accepts'] / logs['requests'] for logs in info])     
+        ep['balanced_accept_rate'] = np.prod([logs['accepts'] / logs['requests'] for logs in info])
         for key, val in zip(self.ACCEPTED_KEYS, self.ACCEPTED_VALS):
             aggr = sum(info[service][key] for service in range(len(info)))
             ep[val] = aggr / total_accepts
@@ -96,9 +95,8 @@ class CoordMonitor(Monitor):
 
         # update information from stable baselines 3 monitor
         ep['ep_return'] = self.get_episode_rewards()[0]
-        #get_episode_lengths()
         ep['ep_length'] = self.get_episode_lengths()[0]
         ep['ep_time'] = self.get_episode_times()[0]
 
-        return ep 
+        return ep
 

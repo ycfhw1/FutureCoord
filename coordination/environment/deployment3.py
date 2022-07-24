@@ -73,7 +73,8 @@ class ServiceCoordination2(gym.Env):
         self.info = None
 
         self.reset()
-
+    def step2(self,action):
+        pass
     def compute_node_state(self, node) -> np.ndarray:
         '''Define node level statistics for state representation.'''
         if not node in self.valid_routes:
@@ -179,7 +180,7 @@ class ServiceCoordination2(gym.Env):
 
         return np.asarray(list(chain(node_stats, service_stats, graph_stats)))
 
-    def step(self, action):
+    def step1(self, action):
         rejected = (action == self.REJECT_ACTION)
 
         # reset tracked information for prior request when `action` deploys the next service's initial component
@@ -285,6 +286,7 @@ class ServiceCoordination2(gym.Env):
         # load graph from path, i.e. reset resource utilizations
         # self.trace = peekable(iter(self.process))
         self.request = self.requests_list[0]
+        del self.requests_list[0]
 
         # set service & VNF properties of request upon arrival
         self.request.resd_lat = self.request.max_latency
@@ -292,7 +294,7 @@ class ServiceCoordination2(gym.Env):
 
         # reset environment's progress parameters
         self.done = False
-        # self.time = self.request.arrival
+        self.time = self.request.arrival
         self.num_requests = 1
 
         KEYS = ['accepts', 'requests', 'skipped_on_arrival', 'no_egress_route', 'no_extension', 'num_rejects',
@@ -358,8 +360,8 @@ class ServiceCoordination2(gym.Env):
         while self.requests_list != []:
             # determine resource demands of request upon their initial arrival
             #delete the first request
-            del self.requests_list[0]
             self.request = self.requests_list[0]
+            del self.requests_list[0]
             self.routes_bidict[self.request] = (None, self.request.ingress)
             self.info[self.request.service].requests += 1
 
@@ -370,11 +372,11 @@ class ServiceCoordination2(gym.Env):
 
             # update progress parameters of environment
             #Todo:how to get the request arrival time
-            # self.time += self.request.arrival - self.time
-            # self.num_requests += 1
+            self.time += (self.request.arrival - self.time)
+            self.num_requests += 1
             #update the time index,release the needed request
-            self.time =self.time +self.request.arrival-self.last_time
-
+            #new coming request,but it has the probability that the arrival time is earlier than the last time
+            # self.time =self.time +self.request.arrival
             # remove services that exceed their duration; free their allocated resources
             while self.deployed and self.deployed[0][0] < self.time:
                 rel_time, service = heapq.heappop(self.deployed)

@@ -11,7 +11,7 @@ from stable_baselines3.common.monitor import Monitor
 import coordination.evaluation.utils as utils
 from coordination.environment.traffic import TrafficStub
 from coordination.evaluation.monitor import CoordMonitor
-from coordination.environment.deployment2 import ServiceCoordination
+from coordination.environment.deployment import ServiceCoordination
 
 
 NUM_DAYS = 6
@@ -19,8 +19,8 @@ NUM_DAYS = 6
 
 parser = argparse.ArgumentParser()
 # arguments to specify the experiment, agent & evaluation 
-parser.add_argument('--experiment', type=str, default='./data/experiments/germany50/trace.yml')
-parser.add_argument('--agent', type=str, default='./data/configurations/PPO.yml')
+parser.add_argument('--experiment', type=str, default='./data/experiments/abilene/trace.yml')
+parser.add_argument('--agent', type=str, default='./data/configurations/grc.yml')
 parser.add_argument('--episodes', type=int, default=10)
 parser.add_argument('--logdir', type=str, default='./results/')
 parser.add_argument('--seed', type=int, default=0)
@@ -87,9 +87,8 @@ if __name__ == '__main__':
         sdays = rng.integers(0, NUM_DAYS, size=len(services) + 1)
         train_process = utils.setup_process(train_rng, exp, services, eday, sdays, exp.load, exp.datarate, exp.latency)
         #Traffic对象包含4个ServiceTraffic组成的processes对象
-        # eval_process = utils.setup_process(eval_rng, exp, services, eday, sdays, exp.load, exp.datarate, exp.latency)
+        eval_process = utils.setup_process(eval_rng, exp, services, eday, sdays, exp.load, exp.datarate, exp.latency)
         # #current all requests,需要处理的所有请求
-        # eval_process = TrafficStub(eval_process.sample())
         #sim_rng
         # sim_process = utils.setup_sim_process(rng, sim_rng, exp, args, eval_process, services, eday, sdays, exp.sim_load, exp.sim_datarate, exp.sim_latency)
 
@@ -105,7 +104,7 @@ if __name__ == '__main__':
         agent = utils.setup_agent(config, monitor, seed=ep)
         utils.setup_agent(config,monitor,seed=ep)
         #random策略不学习,不是，所有算法都不学习啊
-        agent.learn(**unmunchify(config.train))
+        # agent.learn(**unmunchify(config.train))
         # setup evaluation environment with traffic seeded by `eval_rng`
         # env.replace_process(eval_process)
         # monitor = CoordMonitor(ep, config.name, env, log_eval)
@@ -119,6 +118,11 @@ if __name__ == '__main__':
         eval_process = utils.setup_process(eval_rng, exp, services, eday, sdays, exp.load, exp.datarate, exp.latency)
         # current all requests,需要处理的所有请求
         eval_process = TrafficStub(eval_process.sample())
+        # request_list=[]
+        # for request in eval_process:
+        #     if request.arrival>5 and request.arrival<10:
+        #         request_list.append(request)
+        # print(request_list)
         # sim_rng is used to cause the errornes traffic
         # sim_process = utils.setup_sim_process(rng, sim_rng, exp, args, eval_process, services, eday, sdays,
         #                                       exp.sim_load, exp.sim_datarate, exp.sim_latency)

@@ -5,11 +5,11 @@ import numpy as np
 import pandas as pd
 import yaml
 from munch import munchify, unmunchify
-from stable_baselines3.common.monitor import Monitor
+from MyMonitor.Monitor import Monitor
 
 import coordination.evaluation.utils as utils
 from coordination.environment.traffic import TrafficStub
-from coordination.evaluation.monitor import CoordMonitor
+from coordination.evaluation.monitor2 import CoordMonitor2
 from coordination.environment.deployment2 import ServiceCoordination
 
 
@@ -19,7 +19,7 @@ NUM_DAYS = 6
 parser = argparse.ArgumentParser()
 # arguments to specify the experiment, agent & evaluation
 parser.add_argument('--experiment', type=str, default='./data/experiments/germany50/trace.yml')
-parser.add_argument('--agent', type=str, default='./data/configurations/random.yml')
+parser.add_argument('--agent', type=str, default='./data/configurations/mavens.yml')
 parser.add_argument('--episodes', type=int, default=10)
 parser.add_argument('--logdir', type=str, default='./results/')
 parser.add_argument('--seed', type=int, default=0)
@@ -115,12 +115,15 @@ if __name__ == '__main__':
         # ep_results = utils.evaluate_episode(agent, monitor, sim_process)
         # ep_results = {ep: ep_results}
         # utils.save_ep_results(ep_results, log_results)
-    for ep in range(5):
+    for ep in range(2):
         eday = rng.integers(0, NUM_DAYS)
         sdays = rng.integers(0, NUM_DAYS, size=len(services) + 1)
         eval_process = utils.setup_process(eval_rng, exp, services, eday, sdays, exp.load, exp.datarate, exp.latency)
         # current all requests,需要处理的所有请求
         eval_process = TrafficStub(eval_process.sample())
+        request_list=[]
+        for req in eval_process:
+            request_list.append(req)
         # sim_rng is used to cause the errornes traffic
         # sim_process = utils.setup_sim_process(rng, sim_rng, exp, args, eval_process, services, eday, sdays,
         #                                       exp.sim_load, exp.sim_datarate, exp.sim_latency)
@@ -128,9 +131,9 @@ if __name__ == '__main__':
         request_list=[]
         for req in eval_process:
             request_list.append(req)
-        env = utils.setup_simulation(config, exp.overlay, request_list, vnfs, chains)
-        monitor = CoordMonitor(ep, config.name, env, log_eval)
+        env = utils.setup_simulation2(config, exp.overlay, request_list, vnfs, chains)
+        monitor = CoordMonitor2(ep, config.name, env, log_eval)
         # evaluate agent on evaluation environment
-        ep_results = utils.evaluate_episode(agent, monitor, eval_process)
+        ep_results = utils.evaluate_episode2(agent, monitor,eval_process)
         ep_results = {ep: ep_results}
         utils.save_ep_results(ep_results, log_results)

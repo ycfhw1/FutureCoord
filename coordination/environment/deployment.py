@@ -22,9 +22,11 @@ class ServiceCoordination(gym.Env):
         # initalize constants from graph description
         self.net_path = net_path
         self.net = nx.read_gpickle(self.net_path)
+        #graph
         self.NUM_NODES = self.net.number_of_nodes()
         self.MAX_DEGREE = max([deg for _, deg in self.net.degree()])
         #this is defined by the special .gpickle file.someone has defined it.
+        #{'HOPS_DIAMETER': 6, 'PROPAGATION_DIAMETER': 12.10319726125241, 'MAX_MEMORY': 512, 'MAX_COMPUTE': 1.0, 'MAX_LINKRATE': 9920.0}
         self.MAX_COMPUTE = self.net.graph['MAX_COMPUTE']
         self.MAX_LINKRATE = self.net.graph['MAX_LINKRATE']  # in MB/s
         self.MAX_MEMORY = self.net.graph['MAX_MEMORY']  # in MB
@@ -41,6 +43,7 @@ class ServiceCoordination(gym.Env):
         self.planning_mode = False
 
         # track resource requirements of prior service request; track admission or dismissal
+        #record the last request's occupied information
         self.occupied = {'compute': 0.0, 'memory': 0.0, 'datarate': 0.0}
         self.admission = {'deployed': False, 'finalized': False}
 
@@ -51,6 +54,7 @@ class ServiceCoordination(gym.Env):
         self.SERVICE_REPR_SIZE = len(
             self.services) + len(self.vnfs) + len(self.net.nodes) + 4
         self.GRAPH_REPR_SIZE = len(self.vnfs) + 3
+        #record every instance in node's current rate_List
         #observation(everynode:Node_Repr_Size)+(everyservicetype:Service_Repr_Size)+(G.graph_repr_size)
         #Box Observation
         #Node_Repr_Size:7:valid, latency, hops, cdemand, mdemand, resd_comp, resd_mem,which is used by placement action
@@ -59,6 +63,7 @@ class ServiceCoordination(gym.Env):
         #ph_Repr_Size：number of deployed instances for each type of VNF+til+mutil+dutil
         self.OBS_SIZE = len(self.net.nodes) * self.NODE_REPR_SIZE + \
                         self.SERVICE_REPR_SIZE + self.GRAPH_REPR_SIZE
+        #observation_space
         self.observation_space = spaces.Box(
             low=0.0, high=1.0, shape=(self.OBS_SIZE,), dtype=np.float16)
 
@@ -96,11 +101,14 @@ class ServiceCoordination(gym.Env):
         config = self.vnfs[vtype]
         supplied_rate = sum(
             [service.datarate for service in self.vtype_bidict[(node, vtype)]])
+
         after_cdem, after_mdem = self.score(
             supplied_rate + self.request.datarate, config)
         prev_cdem, prev_mdem = self.score(supplied_rate, config)
+        #calculate the cdemand
         cdemand = np.clip((after_cdem - prev_cdem) /
                           self.MAX_COMPUTE, a_min=0.0, a_max=1.0)
+        #calculate the mdemand
         mdemand = np.clip((after_mdem - prev_mdem) /
                           self.MAX_MEMORY, a_min=0.0, a_max=1.0)
 
@@ -134,7 +142,7 @@ class ServiceCoordination(gym.Env):
                 supplied_rate - self.request.datarate, config)
             crelease += prev_cdem - after_cdem
             mrelease += prev_mdem - after_mdem
-        #normalize
+        #normalize,crelease,mrelease
         crelease /= self.MAX_SERVICE_LEN * self.MAX_COMPUTE
         mrelease /= self.MAX_SERVICE_LEN * self.MAX_MEMORY
 
@@ -144,6 +152,7 @@ class ServiceCoordination(gym.Env):
 
         # (3) count encoding of to-be-deployed VNFs for requested service
         counter = Counter(self.request.vtypes[vnum:])
+
         vnf_counts = [counter[vnf] /
                       self.MAX_SERVICE_LEN for vnf in range(len(self.vnfs))]
 
@@ -156,7 +165,7 @@ class ServiceCoordination(gym.Env):
         # (6) one-hot encoding of request's egress node
         egress_enc = [1.0 if node ==
                              self.request.egress else 0.0 for node in self.net.nodes]
-
+        #vnf_counts represent the remaining vnf types
         service_stats = [crelease, mrelease, *stype, *
         vnf_counts, datarate, resd_lat, *egress_enc]
 
@@ -175,7 +184,7 @@ class ServiceCoordination(gym.Env):
             {src, trg})] / self.MAX_LINKRATE for src, trg in self.net.edges])
 
         graph_stats = [*num_deployed, mean_cutil, mean_mutil, mean_lutil]
-
+        print(np.asarray(list(chain(node_stats, service_stats, graph_stats))))
         return np.asarray(list(chain(node_stats, service_stats, graph_stats)))
 
     def step(self, action):
@@ -201,6 +210,7 @@ class ServiceCoordination(gym.Env):
             return self.compute_state(), 0.0, self.done, {}
 
         # action voluntarily releases partial service embedding; progress to next service
+        #主动释放部分服务嵌入；以服务下一次服务的进度
         elif rejected:
             self.info[self.request.service].num_rejects += 1
             self.logger.debug('Service embedding rejected.')
@@ -405,10 +415,8 @@ class ServiceCoordination(gym.Env):
 
             self.computing[node] += prev_cdem - after_cdem
             self.memory[node] += prev_mdem - after_mdem
-
         # remove to-be-released request from mapping
         del self.vtype_bidict.mirror[req]
-
         # release datarate along routing path and update datastructure
         route = self.routes_bidict.pop(req, [])
         for src, trg in route[1:]:
@@ -428,14 +436,15 @@ class ServiceCoordination(gym.Env):
         # track increase of resources occupied by the service deployment
         datarate = len(route) * self.request.datarate
         occupied = {'compute': 0.0, 'memory': 0.0, 'datarate': datarate}
+        #{'compute': 0.24598152161708728, 'memory': 768.0, 'datarate': 516.8745179973857}
         self.occupied = {key: self.occupied[key] + occupied[key] for key in occupied}
 
     def compute_resources(self, node: int, vtype: int) -> Tuple[int]:
         '''Calculate increased resource requirements when placing a VNF of type `vtype` on `node`.'''
         # calculate the datarate served by VNF `vtype` before scheduling the current flow to it
         config = self.vnfs[vtype]
+        #the datarate doesn't distinguish the flow type
         supplied_rate = sum([service.datarate for service in self.vtype_bidict[(node, vtype)]])
-
         # calculate the resource requirements before and after the scaling
         before = self.score(supplied_rate, config)
         after = self.score(supplied_rate + self.request.datarate, config)
@@ -465,7 +474,7 @@ class ServiceCoordination(gym.Env):
         self.vtype_bidict[(node, vtype)] = self.request
 
         # the service is completely deployed; register demanded resources for deletion after duration is exceeded
-        if len(self.vtype_bidict.mirror[self.request]) >= len(self.request.vtypes):
+        if len(self.vtype_bidict.mirror[self.request]) == len(self.request.vtypes):
             return True
 
         return False
@@ -488,19 +497,22 @@ class ServiceCoordination(gym.Env):
             return
 
         # compute latencies by shortest path of propagation delays across amenable edges
+        #SOURCE:8
         _, source = self.routes_bidict[self.request][-1]
+        #all candidate nodes
+        #{8: 0, 11: 0.15430500052566462, 13: 0.3437491777902329, 2: 0.35707748853512133, 31: 0.4124103533704826, 37: 0.5030940551965568, 3: 0.5843501633478713, 25: 0.6353675928592062, 32: 0.6760395849780623, 49: 0.7085530236466248, 41: 0.7594958203022628, 18: 0.8549415707925507, 5: 0.871545738099399, 19: 0.8978817704237891, 34: 0.9212570930293987, 10: 1.0074296241720928, 22: 1.0196577590535458, 16: 1.0266557663712659, 43: 1.0297492850629224, 20: 1.0331334967709591, 40: 1.0457565811621277, 45: 1.0472349789538118, 44: 1.0492127092039008, 1: 1.0590295521644042, 14: 1.0854660739669235, 9: 1.093285762483712, 35: 1.1415510163095033, 12: 1.1603106123610458, 26: 1.1907463656011061, 24: 1.1983889665552838, 48: 1.203296226672668, 33: 1.2113384805366214, 28: 1.2218790047642565, 47: 1.233365330785172, 4: 1.2383230324686378, 29: 1.2506988426677474, 21: 1.2527392953289849, 39: 1.2580420645835757, 6: 1.2771533725283974, 23: 1.3057044419516144, 27: 1.348042876801162, 30: 1.3560566196352284, 38: 1.3872327479467736, 0: 1.3928588300638047, 7: 1.408466492933099, 42: 1.451759545593431, 46: 1.4634045165613112, 15: 1.513905458744372, 17: 1.5145350375183448, 36: 1.608286920926357}
         lengths, routes = nx.single_source_dijkstra(
             self.net, source=source, weight=self.get_weights, cutoff=self.request.resd_lat)
-
+        #routes:11:[8,11] candidate paths and all the nodes passed through
         # filter routes to deployment nodes where the routing delay exceeds the maximum end-to-end latency of the request
+        #检查是否有时延未超标的节点,
         routes = {node: route for node, route in routes.items(
         ) if lengths[node] <= self.request.resd_lat}
-
         # check whether reachable nodes also provision enough resources for the deployment
         vnum = len(self.vtype_bidict.mirror[self.request])
         vtype = self.request.vtypes[vnum]
         cdemands, mdemands = {}, {}
-
+        #the candidate node compute_resources
         for node in routes:
             compute, memory = self.compute_resources(node, vtype)
             cdemands[node] = compute
@@ -509,12 +521,18 @@ class ServiceCoordination(gym.Env):
         # valid nodes must provision enough compute and memory resources for the deployment
         valid_nodes = [node for node in routes if cdemands[node] <=
                        self.computing[node] and mdemands[node] <= self.memory[node]]
-
+        for node in valid_nodes:
+            try:
+                _, check_route = nx.single_source_dijkstra(self.net, source=node, target=self.request.egress,weight=self.get_weights, cutoff=self.request.resd_lat)
+            except Exception as e:
+                valid_nodes.pop(valid_nodes.index(node))
         # cache valid routes for the upcoming time step
+        #check the valid routes
+        #{8: [], 11: [(8, 11)], 13: [(8, 13)], 2: [(8, 2)], 3: [(8, 11), (11, 3)], 31: [(8, 11), (11, 31)], 25: [(8, 13), (13, 25)], 49: [(8, 2), (2, 37), (37, 49)], 37: [(8, 2), (2, 37)], 32: [(8, 11), (11, 31), (31, 32)], 34: [(8, 2), (2, 37), (37, 34)], 41: [(8, 2), (2, 37), (37, 41)], 43: [(8, 11), (11, 3), (3, 43)], 20: [(8, 11), (11, 3), (3, 20)], 10: [(8, 13), (13, 25), (25, 10)], 5: [(8, 11), (11, 31), (31, 32), (32, 5)], 19: [(8, 13), (13, 25), (25, 19)], 18: [(8, 13), (13, 25), (25, 18)], 45: [(8, 2), (2, 37), (37, 49), (49, 45)], 1: [(8, 2), (2, 37), (37, 34), (34, 1)], 40: [(8, 2), (2, 37), (37, 41), (41, 40)], 16: [(8, 13), (13, 25), (25, 19), (19, 16)], 21: [(8, 11), (11, 31), (31, 32), (32, 5), (5, 21)], 22: [(8, 11), (11, 31), (31, 32), (32, 5), (5, 22)], 4: [(8, 11), (11, 31), (31, 32), (32, 5), (5, 4)], 44: [(8, 13), (13, 25), (25, 19), (19, 44)], 26: [(8, 2), (2, 37), (37, 34), (34, 26)], 14: [(8, 13), (13, 25), (25, 10), (10, 14)], 35: [(8, 13), (13, 25), (25, 10), (10, 35)], 6: [(8, 11), (11, 31), (31, 32), (32, 5), (5, 22), (22, 6)], 39: [(8, 13), (13, 25), (25, 10), (10, 35), (35, 39)], 28: [(8, 13), (13, 25), (25, 19), (19, 44), (44, 28)], 9: [(8, 13), (13, 25), (25, 19), (19, 16), (16, 9)], 27: [(8, 11), (11, 3), (3, 43), (43, 27)], 24: [(8, 2), (2, 37), (37, 49), (49, 45), (45, 24)], 47: [(8, 2), (2, 37), (37, 34), (34, 1), (1, 47)], 30: [(8, 2), (2, 37), (37, 49), (49, 45), (45, 30)], 12: [(8, 13), (13, 25), (25, 10), (10, 14), (14, 12)], 48: [(8, 13), (13, 25), (25, 10), (10, 14), (14, 48)], 33: [(8, 13), (13, 25), (25, 19), (19, 16), (16, 9), (9, 33)], 23: [(8, 13), (13, 25), (25, 19), (19, 16), (16, 9), (9, 23)], 29: [(8, 13), (13, 25), (25, 10), (10, 14), (14, 12), (12, 29)], 42: [(8, 13), (13, 25), (25, 19), (19, 16), (16, 9), (9, 23), (23, 42)], 17: [(8, 2), (2, 37), (37, 49), (49, 45), (45, 24), (24, 17)], 0: [(8, 13), (13, 25), (25, 10), (10, 14), (14, 48), (48, 0)], 46: [(8, 13), (13, 25), (25, 19), (19, 44), (44, 28), (28, 46)], 38: [(8, 11), (11, 31), (31, 32), (32, 5), (5, 22), (22, 6), (6, 38)], 7: [(8, 11), (11, 31), (31, 32), (32, 5), (5, 22), (22, 6), (6, 7)], 15: [(8, 11), (11, 3), (3, 43), (43, 27), (27, 15)], 36: [(8, 11), (11, 31), (31, 32), (32, 5), (5, 22), (22, 6), (6, 38), (38, 36)]}
+        #every step's valid_routes
         self.valid_routes = {node: ServiceCoordination.get_edges(route) for node,
                                                                             route in routes.items() if
                              node in valid_nodes}
-
     def replace_process(self, process):
         '''Replace traffic process used to generate request traces.'''
         self.process = process
@@ -624,15 +642,40 @@ class ServiceCoordination(gym.Env):
         # VNFs cannot serve more than their max. transfer rate (in MB/s)
         elif rate > config['max. req_transf_rate']:
             return (np.inf, np.inf)
-
+        #average rate only one!
         rate = rate / config['scale']
 
-        # score VNF resources by polynomial fit
+        # score VNF resources by polynomial fit,非线性关系
         compute = config['coff'] + config['ccoef_1'] * rate + config['ccoef_2'] * \
                   (rate ** 2) + config['ccoef_3'] * \
                   (rate ** 3) + config['ccoef_4'] * (rate ** 4)
         memory = config['moff'] + config['mcoef_1'] * rate + config['mcoef_2'] * \
                  (rate ** 2) + config['mcoef_3'] * \
                  (rate ** 3) + config['mcoef_3'] * (rate ** 4)
+
+        return (max(0.0, compute), max(0.0, memory))
+
+
+    @staticmethod
+    def score2(rate_list, config):
+        '''Score the CPU and memory resource consumption for a given VNF configuration and requested datarate.'''
+        # set VNF resource consumption to zero whenever their requested rate is zero
+        for rate in rate_list:
+            if rate <0.0:
+                return (0.0, 0.0)
+
+        # VNFs cannot serve more than their max. transfer rate (in MB/s)
+            elif rate > config['max. req_transf_rate']:
+                return (np.inf, np.inf)
+        #average rate only one!
+        rate_list = rate_list / config['scale']
+
+        # score VNF resources by polynomial fit,非线性关系
+        compute = config['coff'] + config['ccoef_1'] * rate_list[0] + config['ccoef_2'] * \
+                  (rate_list[1]) + config['ccoef_3'] * \
+                  (rate_list[2]) + config['ccoef_4'] * (rate_list[3])
+        memory = config['moff'] + config['mcoef_1'] * rate_list[0] + config['mcoef_2'] * \
+                 (rate_list[1]) + config['mcoef_3'] * \
+                 (rate_list[2]) + config['mcoef_3'] * (rate_list[3])
 
         return (max(0.0, compute), max(0.0, memory))

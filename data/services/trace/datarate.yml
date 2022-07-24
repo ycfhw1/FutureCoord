@@ -6,19 +6,18 @@ vnfs:
 process:  # time measured in seconds
   name: poissonian
   marrival: data/rates/trace/2.npy
-  mduration: 5.0
+  mduration: 10.0
 
 datarates:  # datarates measured in MB/s
   distr: trcnormal
-  loc: 80.0          # roughly 1/4th of the max. rate of bottleneck service nginx (cpu)
-  scale: 64.0         # roughly 1/5th of the mean requested datarate
-  a: 32.2             # roughly 1/10 of the max.rate of bottlebeck nginx (cpu)
-  b: 320.0            # roughly the max. rate of bottleneck nginx (cpu)
+  loc: 398.0          # roughly 1/4th of the max. rate of bottleneck service nginx (cpu)
+  scale: 79.6         # roughly 1/5th of the mean requested datarate
+  a: 159.2             # roughly 1/10 of the max.rate of bottlebeck nginx (cpu)
+  b: 1592.0            # roughly the max. rate of bottleneck nginx (cpu)
 
-latencies:  
+latencies:
   distr:  trcnormal
-  loc: 5.0
-  scale: 5.0
-  a: 5.0
+  loc: 2.0
+  scale: 1.0
+  a: 2.0
   b: .inf             # max. avg. end-to-end latency is unbounded
-            

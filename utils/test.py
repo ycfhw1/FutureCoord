@@ -31,13 +31,32 @@ if __name__ == '__main__':
     # p=peekable(a)
     # while True:
     #     print(type(next(p)))
-    results = np.random.random(size=100)
-    results_list=[]
-    for result in results:
-        if result > 0.5:
-            result = 1
-            results_list.append(result)
-        else:
-            result = 0
-            results_list.append(result)
-    print(results_list)
+    # results = np.random.random(size=100)
+    # results_list=[]
+    # for result in results:
+    #     if result > 0.5:
+    #         result = 1
+    #         results_list.append(result)
+    #     else:
+    #         result = 0
+    #         results_list.append(result)
+    # print(results_list)
+    # net=nx.read_gpickle("/home/hello/桌面/xiaofu/FutureCoord/data/experiments/abilene/abilene2.gpickle")
+    # #NODES:NAME,COORDS,COMPUTE,MEMORY
+    # print(net.nodes(data=True))
+    # for u,d in net.nodes(data=True):
+    #     d['compute']=d['compute']*5
+    #     d['memory']=d['memory']*5
+    # for u,v,w in net.edges(data=True):
+    #     w['datarate']=w['datarate']*10
+    #     w['propagation'] = w['propagation'] /10
+    # nx.write_gpickle(net,"/home/hello/桌面/xiaofu/abilene.gpickle")
+    nums = [4, 1, 5, 2, 9, 6, 8, 7]
+
+    m_sorted = sorted(enumerate(nums), key=lambda x: x[1])
+    print(m_sorted)
+    sorted_inds = [m[0] for m in m_sorted]
+
+    sorted_nums = [m[1] for m in m_sorted]
+    # print(sorted_inds)
+    # print(sorted_nums)

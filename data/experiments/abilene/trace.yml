@@ -9,9 +9,9 @@ sim_latency: 1.0          # constant scaling factor for latency of services from
 traffic: accurate         # specify whether the simulated traffic is `accurate` (known arrival rates) or traffic is generated from false pattern `erroneous`
 vnfs: ./data/experiments/vnfs.csv
 services:
-  - ./data/services/trace/memory.yml
-  - ./data/services/trace/cpu.yml
-  - ./data/services/trace/datarate.yml
-  - ./data/services/trace/latency.yml
-overlay: ./data/experiments/abilene/abilene.gpickle
+  - ./data/services/trace/memory.yml #service 0 memory:high
+  - ./data/services/trace/cpu.yml  #service 1 duration :short
+  - ./data/services/trace/datarate.yml #datarate: high
+  - ./data/services/trace/latency.yml #service 3 latency :short duration :short
+overlay: ./data/experiments/abilene/abilene2.gpickle
 endpoints: ./data/experiments/abilene/abilene.npy

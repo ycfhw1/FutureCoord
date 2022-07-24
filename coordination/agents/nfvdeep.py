@@ -5,7 +5,7 @@ from collections import defaultdict
 import numpy as np
 from gym import spaces
 
-from coordination.environment.deployment import ServiceCoordination
+from coordination.environment.deployment2 import ServiceCoordination
 class NFVdeepCoordination(ServiceCoordination):
     COMPUTE_UNIT_COST = 0.2
     MEMORY_UNIT_COST = 0.2

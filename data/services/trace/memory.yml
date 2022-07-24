@@ -8,19 +8,18 @@ vnfs:
 process:  # time measured in seconds
   name: poissonian
   marrival: data/rates/trace/2.npy
-  mduration: 5.0
+  mduration: 40.0
 
 datarates:  # datarates measured in MB/s
   distr: trcnormal
-  loc: 88.0          # roughly 1/2th of the max. rate of bottleneck service squid (cpu) -> implies low datarate utilization
+  loc: 214.0          # roughly 1/2th of the max. rate of bottleneck service squid (cpu) -> implies low datarate utilization
   scale: 42.8         # roughly 1/5th of the mean requested datarate
   a: 42.8             # roughly 1/10 of the max.rate of bottlebeck squid (mem)
   b: 427.8            # roughly the max. rate of bottleneck squid (mem)
 
-latencies:  
+latencies:
   distr:  trcnormal
-  loc: 4.0           
-  scale: 1.5         
-  a: 2.0              
+  loc: 4.0
+  scale: 1.5
+  a: 2.0
   b: .inf             # max. avg. end-to-end latency is unbounded
-            
