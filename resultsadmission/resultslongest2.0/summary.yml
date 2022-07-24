@@ -1,0 +1,29 @@
+agent:
+  name: LONGESTPOLICY
+  policy: {}
+  train: {}
+args:
+  agent: ./data/configurations/LongestPolicy.yml
+  episodes: 10
+  experiment: ./data/experiments/abilene/trace.yml
+  logdir: ./results/
+  oracle: false
+  seed: 0
+experiment:
+  datarate: 1.0
+  endpoints: ./data/experiments/abilene/abilene.npy
+  latency: 1.0
+  load: 1.0
+  name: abilene
+  overlay: ./data/experiments/abilene/abilene.gpickle
+  services:
+  - ./data/services/trace/memory.yml
+  - ./data/services/trace/cpu.yml
+  - ./data/services/trace/datarate.yml
+  - ./data/services/trace/latency.yml
+  sim_datarate: 1.0
+  sim_latency: 1.0
+  sim_load: 1.0
+  time_horizon: 43
+  traffic: accurate
+  vnfs: ./data/experiments/vnfs2.csv
